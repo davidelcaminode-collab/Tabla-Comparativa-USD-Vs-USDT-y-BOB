@@ -1,0 +1,63 @@
+# ============================================================================
+#  Automatización diaria del promedio USDT/BOB
+#  Este "workflow" hace que GitHub ejecute tu script de Python solo,
+#  cada día, en sus propios servidores. No necesitás tener la PC encendida.
+# ============================================================================
+name: Registro diario USDT/BOB
+
+# ---------------------------------------------------------------------------
+#  ¿CUÁNDO se ejecuta?
+# ---------------------------------------------------------------------------
+on:
+  # 1) Automáticamente, según un horario (cron). La hora es en UTC.
+  #    '30 23 * * *'  = todos los días a las 23:30 UTC = 19:30 en Bolivia.
+  #    (Bolivia es UTC-4. Si querés otra hora, cambiá el número de la hora:
+  #     hora_Bolivia + 4 = hora_UTC. Ej.: 21:00 Bolivia -> 01:00 UTC del día siguiente.)
+  schedule:
+    - cron: '30 23 * * *'
+
+  # 2) También a mano, con un botón en la pestaña "Actions" de GitHub.
+  #    Sirve para probar que funciona sin esperar al horario.
+  workflow_dispatch:
+
+# ---------------------------------------------------------------------------
+#  Permiso para que el robot pueda GUARDAR el nuevo dato en tu repositorio.
+# ---------------------------------------------------------------------------
+permissions:
+  contents: write
+
+jobs:
+  registrar-precio:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Paso 1: descargar tu repositorio dentro del servidor
+      - name: Descargar el repositorio
+        uses: actions/checkout@v6
+
+      # Paso 2: instalar Python
+      - name: Preparar Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      # Paso 3: instalar las librerías necesarias (matplotlib)
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      # Paso 4: ejecutar tu programa (registra el promedio de hoy)
+      - name: Ejecutar la automatización
+        run: python usdt_bob_diario.py
+
+      # Paso 5: guardar el CSV y el gráfico actualizados de vuelta en el repo
+      - name: Guardar el nuevo dato en el repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add historial_usdt_bob.csv grafico_usdt_bob.png
+          if git diff --staged --quiet; then
+            echo "No hay datos nuevos para guardar hoy."
+          else
+            git commit -m "Registro automatico USDT/BOB del $(date -u +%Y-%m-%d)"
+            git push
+          fi
