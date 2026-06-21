@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dólar Bolivia · Panel en vivo</title>
+<style>
+  :root {
+    --papel:    #efe9dd;
+    --papel-hi: #f7f3ea;
+    --tarjeta:  #f4efe4;
+    --tinta:    #14110e;
+    --oficial:  #2f5d50;
+    --real:     #b4471f;
+    --usdt:     #3a5a7a;
+    --linea:    #cabfa8;
+    --linea-fuerte: #b3a685;
+    --tenue:    #6f6655;
+    --ok:       #2f7d4f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(0,0,0,0.022), transparent 42%),
+      radial-gradient(circle at 82% 68%, rgba(0,0,0,0.028), transparent 46%);
+  }
+
+  .mono {
+    font-family: "SF Mono", "Roboto Mono", ui-monospace, "Courier New", monospace;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 22px; }
+
+  /* ---------- ENCABEZADO ---------- */
+  header { padding: 48px 0 30px; border-bottom: 2px solid var(--tinta); }
+
+  .barra-sup {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px; margin-bottom: 26px; flex-wrap: wrap;
+  }
+  .eyebrow {
+    font-size: 0.7rem; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--tenue);
+  }
+  .controles { display: flex; align-items: center; gap: 14px; }
+
+  .estado {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--tenue);
+  }
+  .punto {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--linea-fuerte); flex-shrink: 0;
+  }
+  .estado.vivo .punto { background: var(--ok); animation: latido 1.8s ease-in-out infinite; }
+  .estado.sin .punto  { background: var(--real); }
+  @keyframes latido {
+    0%,100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(47,125,79,0.4); }
+    50%     { opacity: .75; transform: scale(1.15); box-shadow: 0 0 0 5px rgba(47,125,79,0); }
+  }
+
+  .btn-act {
+    font-family: inherit; font-size: 0.8rem;
+    background: transparent; color: var(--tinta);
+    border: 1px solid var(--linea-fuerte); border-radius: 4px;
+    padding: 6px 13px; cursor: pointer; transition: background .15s, border-color .15s;
+  }
+  .btn-act:hover { background: var(--papel-hi); border-color: var(--tinta); }
+  .btn-act:focus-visible { outline: 2px solid var(--oficial); outline-offset: 2px; }
+  .btn-act:disabled { opacity: .5; cursor: wait; }
+
+  h1 {
+    font-size: clamp(2.1rem, 6vw, 3.6rem); font-weight: 700;
+    line-height: 1.0; letter-spacing: -0.02em; margin-bottom: 14px;
+  }
+  h1 .acc { color: var(--real); font-style: italic; }
+  .sub { font-size: clamp(0.98rem, 2.2vw, 1.12rem); max-width: 58ch; color: var(--tenue); }
+
+  /* ---------- TARJETAS ---------- */
+  .tarjetas {
+    display: grid; gap: 14px; margin: 30px 0 14px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .tarjeta {
+    background: var(--tarjeta);
+    border: 1px solid var(--linea);
+    border-radius: 7px; padding: 16px 16px 15px;
+    display: flex; flex-direction: column; min-height: 118px;
+  }
+  .t-etq {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--tenue); margin-bottom: auto;
+  }
+  .t-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .dot-of { background: var(--oficial); }
+  .dot-pa { background: var(--real); }
+  .dot-us { background: var(--usdt); }
+  .dot-br { background: var(--real); }
+
+  .t-valor {
+    font-size: clamp(1.7rem, 4.6vw, 2.3rem); font-weight: 600;
+    line-height: 1; font-variant-numeric: tabular-nums; margin: 12px 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .tarjeta.brecha .t-valor { color: var(--real); }
+  .t-pie { font-size: 0.72rem; color: var(--tenue); }
+  .t-pie b { color: var(--tinta); font-weight: 600; }
+
+  /* ---------- SIGNATURE: la brecha ---------- */
+  .escala-bloque {
+    background: var(--papel-hi);
+    border: 1px solid var(--linea);
+    border-radius: 8px; padding: 26px 26px 20px; margin: 26px 0;
+  }
+  .escala-titulo {
+    font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--tenue); margin-bottom: 30px;
+  }
+  .escala-titulo b { color: var(--real); }
+
+  .escala { position: relative; height: 92px; margin: 0 6px; }
+  .eje {
+    position: absolute; left: 0; right: 0; top: 56px; height: 2px;
+    background: var(--linea-fuerte);
+  }
+  .banda {
+    position: absolute; top: 50px; height: 14px;
+    background: repeating-linear-gradient(
+      -45deg, rgba(180,71,31,0.22), rgba(180,71,31,0.22) 5px,
+      rgba(180,71,31,0.10) 5px, rgba(180,71,31,0.10) 10px);
+    border-left: 2px solid var(--oficial);
+    border-right: 2px solid var(--real);
+    width: 0; left: 0;
+    transition: width 1.1s cubic-bezier(.22,.61,.36,1), left 1.1s cubic-bezier(.22,.61,.36,1);
+  }
+  .marca { position: absolute; top: 30px; transform: translateX(-50%); text-align: center; transition: left 1.1s cubic-bezier(.22,.61,.36,1); }
+  .marca .linea-v { width: 2px; height: 40px; margin: 6px auto 0; }
+  .marca.of .linea-v { background: var(--oficial); }
+  .marca.re .linea-v { background: var(--real); }
+  .marca .num { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .marca.of .num { color: var(--oficial); }
+  .marca.re .num { color: var(--real); }
+  .marca .cap { font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tenue); }
+  .brecha-flota {
+    position: absolute; top: -2px; transform: translateX(-50%);
+    font-size: 0.78rem; font-weight: 700; color: var(--real);
+    font-variant-numeric: tabular-nums; transition: left 1.1s cubic-bezier(.22,.61,.36,1);
+    white-space: nowrap;
+  }
+  .escala-pie {
+    display: flex; justify-content: space-between;
+    font-size: 0.62rem; color: var(--tenue); margin-top: 8px;
+  }
+
+  /* ---------- SECCIONES ---------- */
+  section { padding: 36px 0; border-bottom: 1px solid var(--linea); }
+  h2 { font-size: 1.35rem; letter-spacing: -0.01em; margin-bottom: 16px; }
+  p { margin-bottom: 13px; max-width: 66ch; }
+
+  .nota {
+    background: var(--papel-hi); border-left: 3px solid var(--oficial);
+    padding: 15px 18px; margin: 18px 0; font-size: 0.93rem;
+  }
+  .nota b { font-weight: 700; }
+
+  /* ---------- GRÁFICO ---------- */
+  .grafico-cab { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .leyenda { display: flex; gap: 18px; font-size: 0.72rem; color: var(--tenue); margin-bottom: 14px; }
+  .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .ll { width: 16px; height: 2px; display: inline-block; }
+  .ll-re { background: var(--real); }
+  .ll-of { background: var(--oficial); border-top: 2px dashed var(--oficial); height: 0; }
+  #grafico { width: 100%; height: auto; display: block; }
+  .grafico-vacio {
+    color: var(--tenue); font-size: 0.9rem; padding: 24px 0; text-align: center;
+    border: 1px dashed var(--linea); border-radius: 6px;
+  }
+
+  footer { padding: 32px 0 60px; font-size: 0.82rem; color: var(--tenue); }
+  footer a { color: var(--oficial); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 720px) {
+    .tarjetas { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 430px) {
+    .tarjetas { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tarjeta { min-height: 104px; padding: 13px; }
+    header { padding-top: 34px; }
+    .escala-bloque { padding: 22px 16px 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .banda, .marca, .brecha-flota { transition: none; }
+    .estado.vivo .punto { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="barra-sup">
+      <div class="eyebrow">Dólar Bolivia · Panel en vivo</div>
+      <div class="controles">
+        <span class="estado" id="estado"><span class="punto"></span><span id="estado-txt">conectando…</span></span>
+        <button class="btn-act" id="btn-actualizar">↻ Actualizar</button>
+      </div>
+    </div>
+    <h1>El dólar <span class="acc">real</span> de Bolivia</h1>
+    <p class="sub">
+      El tipo de cambio oficial del BCB es casi fijo, pero el dólar que la gente
+      consigue de verdad —vía USDT en el mercado P2P— vale bastante más.
+      Este panel mide esa brecha con datos en vivo.
+    </p>
+  </header>
+
+  <!-- TARJETAS -->
+  <div class="tarjetas">
+    <div class="tarjeta">
+      <div class="t-etq"><span class="t-dot dot-of"></span>Oficial BCB</div>
+      <div class="t-valor mono" id="v-oficial">—</div>
+      <div class="t-pie">venta · <b id="v-oficial-compra">—</b> compra · fijo</div>
+    </div>
+    <div class="tarjeta">
+      <div class="t-etq"><span class="t-dot dot-pa"></span>Paralelo</div>
+      <div class="t-valor mono" id="v-paralelo">—</div>
+      <div class="t-pie">promedio P2P</div>
+    </div>
+    <div class="tarjeta">
+      <div class="t-etq"><span class="t-dot dot-us"></span>USDT mejor</div>
+      <div class="t-valor mono" id="v-usdt">—</div>
+      <div class="t-pie">mejor precio de compra</div>
+    </div>
+    <div class="tarjeta brecha">
+      <div class="t-etq"><span class="t-dot dot-br"></span>Brecha</div>
+      <div class="t-valor mono" id="v-brecha">—</div>
+      <div class="t-pie">paralelo vs. oficial</div>
+    </div>
+  </div>
+
+  <!-- SIGNATURE: escala de la brecha -->
+  <div class="escala-bloque">
+    <div class="escala-titulo">Brecha cambiaria · <b>oficial vs. real</b></div>
+    <div class="escala">
+      <div class="eje"></div>
+      <div class="banda" id="banda"></div>
+      <div class="brecha-flota" id="brecha-flota"></div>
+      <div class="marca of" id="marca-of">
+        <div class="num mono" id="m-of">—</div>
+        <div class="cap">Oficial</div>
+        <div class="linea-v"></div>
+      </div>
+      <div class="marca re" id="marca-re">
+        <div class="num mono" id="m-re">—</div>
+        <div class="cap">Real (P2P)</div>
+        <div class="linea-v"></div>
+      </div>
+    </div>
+    <div class="escala-pie mono"><span>6 Bs</span><span>11 Bs</span></div>
+  </div>
+
+  <!-- GRÁFICO -->
+  <section>
+    <div class="grafico-cab">
+      <h2>Evolución del dólar real</h2>
+    </div>
+    <div class="leyenda">
+      <span><i class="ll ll-re"></i> USDT/BOB P2P (diario)</span>
+      <span><i class="ll ll-of"></i> Oficial BCB</span>
+    </div>
+    <svg id="grafico" viewBox="0 0 900 340" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gráfico de evolución del dólar paralelo"></svg>
+    <div class="grafico-vacio" id="grafico-vacio" style="display:none">
+      Todavía no hay historial suficiente. Cada día que el robot se ejecuta,
+      este gráfico suma un punto nuevo.
+    </div>
+  </section>
+
+  <!-- EXPLICACIÓN -->
+  <section>
+    <h2>Qué es esto</h2>
+    <p>
+      Un panel que consulta el precio del USDT (Tether) en bolivianos en el
+      mercado P2P y lo compara con el tipo de cambio oficial del Banco Central
+      de Bolivia. Los valores del momento se traen en vivo; la evolución diaria
+      se construye con un programa en Python que registra el promedio cada día.
+    </p>
+    <div class="nota">
+      <b>USDT no es el dólar.</b> Es una <em>stablecoin</em>: un token digital
+      privado que intenta valer 1 dólar. En Bolivia se compra y vende
+      masivamente en plataformas P2P, así que su precio en bolivianos funciona
+      como termómetro del dólar paralelo real.
+    </div>
+  </section>
+
+  <footer>
+    Proyecto académico — Fundamentos de Ciencia de Datos.<br>
+    Datos en vivo: CriptoYa (agregador de plataformas P2P). Evolución diaria:
+    registro propio en Python. Tipo de cambio oficial: Banco Central de Bolivia
+    (referencial). Las cotizaciones son referenciales y pueden variar según la
+    plataforma y la hora.
+  </footer>
+
+</div>
+
+<script>
+  // ====================== CONFIGURACIÓN ======================
+  var OFICIAL_VENTA  = 6.96;   // tipo de cambio oficial BCB (venta), fijo
+  var OFICIAL_COMPRA = 6.86;   // tipo de cambio oficial BCB (compra), fijo
+  var ESCALA_MIN = 6, ESCALA_MAX = 11;
+  var CRIPTOYA_URL = 'https://criptoya.com/api/usdt/bob/1';
+  var CSV_URL = 'historial_usdt_bob.csv';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ====================== UTILIDADES ======================
+  function $(id){ return document.getElementById(id); }
+  function fmt(n){ return n.toFixed(2); }
+  function posicion(val){
+    var p = (val - ESCALA_MIN) / (ESCALA_MAX - ESCALA_MIN) * 100;
+    return Math.max(0, Math.min(100, p));
+  }
+
+  function animarNumero(el, destino, dec, sufijo){
+    sufijo = sufijo || '';
+    if (reduce){ el.textContent = destino.toFixed(dec) + sufijo; return; }
+    var inicio = 0, dur = 700, t0 = null;
+    function paso(ts){
+      if(!t0) t0 = ts;
+      var k = Math.min((ts - t0)/dur, 1);
+      var e = 1 - Math.pow(1-k, 3);
+      el.textContent = (inicio + (destino-inicio)*e).toFixed(dec) + sufijo;
+      if(k < 1) requestAnimationFrame(paso);
+    }
+    requestAnimationFrame(paso);
+  }
+
+  // ====================== ESTADO / INDICADOR ======================
+  function setEstado(tipo, texto){
+    var e = $('estado');
+    e.className = 'estado' + (tipo ? ' ' + tipo : '');
+    $('estado-txt').textContent = texto;
+  }
+
+  // ====================== CARGA EN VIVO (CriptoYa) ======================
+  function cargarVivo(){
+    return fetch(CRIPTOYA_URL, { cache: 'no-store' })
+      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(data){
+        var asks = [];
+        for (var k in data){
+          var v = data[k];
+          if (v && typeof v.ask === 'number' && v.ask > 0) asks.push(v.ask);
+        }
+        if (!asks.length) return null;
+        var suma = 0; for (var i=0;i<asks.length;i++) suma += asks[i];
+        return { paralelo: suma/asks.length, mejor: Math.min.apply(null, asks) };
+      })
+      .catch(function(err){ console.warn('Vivo no disponible:', err); return null; });
+  }
+
+  // ====================== CARGA CSV (robot propio) ======================
+  function parseCSV(txt){
+    var lineas = txt.trim().split(/\r?\n/);
+    if (lineas.length < 2) return [];
+    var cab = lineas[0].split(',');
+    var iFecha = cab.indexOf('fecha');
+    var iProm  = cab.indexOf('promedio_usdt_bob');
+    var filas = [];
+    for (var i=1;i<lineas.length;i++){
+      var c = lineas[i].split(',');
+      var prom = parseFloat(c[iProm]);
+      if (c[iFecha] && !isNaN(prom)) filas.push({ fecha: c[iFecha], promedio: prom });
+    }
+    return filas;
+  }
+
+  function cargarCSV(){
+    return fetch(CSV_URL, { cache: 'no-store' })
+      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function(txt){ return parseCSV(txt); })
+      .catch(function(err){ console.warn('CSV no disponible:', err); return []; });
+  }
+
+  // ====================== PINTAR TARJETAS + ESCALA ======================
+  function pintarValores(paralelo, mejor){
+    var brecha = (paralelo/OFICIAL_VENTA - 1) * 100;
+
+    animarNumero($('v-oficial'), OFICIAL_VENTA, 2);
+    $('v-oficial-compra').textContent = fmt(OFICIAL_COMPRA);
+    animarNumero($('v-paralelo'), paralelo, 2);
+    animarNumero($('v-usdt'), mejor, 2);
+    animarNumero($('v-brecha'), brecha, 1, '%');
+
+    animarNumero($('m-of'), OFICIAL_VENTA, 2);
+    animarNumero($('m-re'), paralelo, 2);
+
+    var pOf = posicion(OFICIAL_VENTA);
+    var pRe = posicion(paralelo);
+    $('marca-of').style.left = pOf + '%';
+    $('marca-re').style.left = pRe + '%';
+    // pequeño retardo para que se vea la animación de la banda
+    setTimeout(function(){
+      $('banda').style.left = pOf + '%';
+      $('banda').style.width = (pRe - pOf) + '%';
+      $('brecha-flota').style.left = ((pOf + pRe)/2) + '%';
+      $('brecha-flota').textContent = '+' + brecha.toFixed(0) + '% brecha';
+    }, reduce ? 0 : 120);
+  }
+
+  // ====================== DIBUJAR GRÁFICO (SVG) ======================
+  function dibujarGrafico(filas){
+    var svg = $('grafico');
+    var vacio = $('grafico-vacio');
+    if (!filas.length){ svg.style.display='none'; vacio.style.display='block'; return; }
+    svg.style.display='block'; vacio.style.display='none';
+
+    var W=900, H=340, mL=54, mR=18, mT=20, mB=46;
+    var ancho = W-mL-mR, alto = H-mT-mB;
+
+    var vals = filas.map(function(f){ return f.promedio; }).concat([OFICIAL_VENTA]);
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var pad = (max-min)*0.15 || 0.5;
+    min = Math.max(0, min - pad); max = max + pad;
+
+    function X(i){ return mL + (filas.length===1 ? ancho/2 : (i/(filas.length-1))*ancho); }
+    function Y(v){ return mT + (1-(v-min)/(max-min))*alto; }
+
+    var ns='http://www.w3.org/2000/svg';
+    svg.innerHTML='';
+
+    // líneas guía horizontales + etiquetas Y
+    var pasos=4;
+    for (var g=0; g<=pasos; g++){
+      var val = min + (max-min)*g/pasos;
+      var y = Y(val);
+      var ln=document.createElementNS(ns,'line');
+      ln.setAttribute('x1',mL); ln.setAttribute('x2',W-mR);
+      ln.setAttribute('y1',y); ln.setAttribute('y2',y);
+      ln.setAttribute('stroke','#cabfa8'); ln.setAttribute('stroke-width','1');
+      if (g>0) ln.setAttribute('stroke-dasharray','2 4');
+      svg.appendChild(ln);
+      var tx=document.createElementNS(ns,'text');
+      tx.setAttribute('x',mL-8); tx.setAttribute('y',y+4);
+      tx.setAttribute('text-anchor','end'); tx.setAttribute('font-size','12');
+      tx.setAttribute('fill','#6f6655'); tx.setAttribute('font-family','monospace');
+      tx.textContent=val.toFixed(2);
+      svg.appendChild(tx);
+    }
+
+    // línea oficial (verde punteada)
+    var yof=Y(OFICIAL_VENTA);
+    var lof=document.createElementNS(ns,'line');
+    lof.setAttribute('x1',mL); lof.setAttribute('x2',W-mR);
+    lof.setAttribute('y1',yof); lof.setAttribute('y2',yof);
+    lof.setAttribute('stroke','#2f5d50'); lof.setAttribute('stroke-width','2');
+    lof.setAttribute('stroke-dasharray','7 5');
+    svg.appendChild(lof);
+
+    // línea paralelo (copper)
+    if (filas.length>1){
+      var d='';
+      for (var i=0;i<filas.length;i++){ d+=(i?' L':'M')+' '+X(i).toFixed(1)+' '+Y(filas[i].promedio).toFixed(1); }
+      var path=document.createElementNS(ns,'path');
+      path.setAttribute('d',d); path.setAttribute('fill','none');
+      path.setAttribute('stroke','#b4471f'); path.setAttribute('stroke-width','2.5');
+      path.setAttribute('stroke-linejoin','round'); path.setAttribute('stroke-linecap','round');
+      svg.appendChild(path);
+      if (!reduce){
+        var len=path.getTotalLength();
+        path.style.strokeDasharray=len; path.style.strokeDashoffset=len;
+        path.style.transition='stroke-dashoffset 1.2s ease';
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ path.style.strokeDashoffset=0; }); });
+      }
+    }
+
+    // puntos + fechas
+    for (var j=0;j<filas.length;j++){
+      var cx=X(j), cy=Y(filas[j].promedio);
+      var c=document.createElementNS(ns,'circle');
+      c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r','4');
+      c.setAttribute('fill','#b4471f'); c.setAttribute('stroke','#f7f3ea'); c.setAttribute('stroke-width','1.5');
+      svg.appendChild(c);
+      // etiqueta de fecha: primera, última y algunas intermedias
+      var mostrar = (j===0 || j===filas.length-1 || filas.length<=7 || j%Math.ceil(filas.length/6)===0);
+      if (mostrar){
+        var ft=document.createElementNS(ns,'text');
+        ft.setAttribute('x',cx); ft.setAttribute('y',H-mB+22);
+        ft.setAttribute('text-anchor','middle'); ft.setAttribute('font-size','11');
+        ft.setAttribute('fill','#6f6655'); ft.setAttribute('font-family','monospace');
+        var partes=filas[j].fecha.split('-');
+        ft.textContent = partes.length===3 ? (partes[2]+'/'+partes[1]) : filas[j].fecha;
+        svg.appendChild(ft);
+      }
+    }
+  }
+
+  // ====================== ORQUESTACIÓN ======================
+  var cacheCSV = [];
+
+  function refrescar(){
+    var btn=$('btn-actualizar');
+    btn.disabled=true;
+    setEstado('', 'conectando…');
+
+    Promise.all([cargarVivo(), cacheCSV.length ? Promise.resolve(cacheCSV) : cargarCSV()])
+      .then(function(res){
+        var vivo=res[0], csv=res[1];
+        cacheCSV=csv;
+
+        if (vivo){
+          pintarValores(vivo.paralelo, vivo.mejor);
+          setEstado('vivo', 'en vivo');
+        } else if (csv.length){
+          var u=csv[csv.length-1];
+          pintarValores(u.promedio, u.promedio);
+          setEstado('sin', 'último registro: ' + u.fecha);
+        } else {
+          setEstado('sin', 'sin datos');
+          $('v-oficial').textContent=fmt(OFICIAL_VENTA);
+          $('v-oficial-compra').textContent=fmt(OFICIAL_COMPRA);
+        }
+
+        dibujarGrafico(csv);
+        btn.disabled=false;
+      });
+  }
+
+  $('btn-actualizar').addEventListener('click', refrescar);
+  refrescar();
+</script>
+</body>
+</html>
