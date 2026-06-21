@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDT/BOB · Promedio diario P2P</title>
+<style>
+  :root {
+    --tinta:      #14110e;   /* casi negro, tinta de documento oficial */
+    --papel:      #efe9dd;   /* papel moneda envejecido */
+    --papel-hi:   #f7f3ea;
+    --oficial:    #2f5d50;   /* verde institucional, billete */
+    --real:       #b4471f;   /* naranja-cobre, mercado / alerta */
+    --linea:      #cabfa8;
+    --tenue:      #6f6655;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* textura sutil de papel mediante gradientes */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(0,0,0,0.025), transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(0,0,0,0.03), transparent 45%);
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 920px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- ENCABEZADO ---------- */
+  header {
+    padding: 64px 0 40px;
+    border-bottom: 2px solid var(--tinta);
+  }
+
+  .eyebrow {
+    font-family: "SF Mono", "Roboto Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--tenue);
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-size: clamp(2.4rem, 7vw, 4.2rem);
+    font-weight: 700;
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+  }
+
+  h1 .acc { color: var(--real); font-style: italic; }
+
+  .sub {
+    font-size: clamp(1rem, 2.4vw, 1.18rem);
+    max-width: 60ch;
+    color: var(--tenue);
+  }
+
+  /* ---------- LA BRECHA (signature) ---------- */
+  .brecha {
+    margin: 56px 0;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lado { text-align: center; padding: 8px; }
+
+  .lado .etq {
+    font-family: "SF Mono", "Roboto Mono", ui-monospace, monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    color: var(--tenue);
+  }
+
+  .lado .cifra {
+    font-size: clamp(2.6rem, 9vw, 4.6rem);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lado .moneda { font-size: 0.9rem; color: var(--tenue); margin-top: 6px; }
+
+  .lado.oficial .cifra { color: var(--oficial); }
+  .lado.real .cifra { color: var(--real); }
+
+  .vs {
+    font-family: "SF Mono", "Roboto Mono", ui-monospace, monospace;
+    font-size: 0.8rem;
+    color: var(--tenue);
+    padding: 0 4px;
+  }
+
+  .brecha-pie {
+    grid-column: 1 / -1;
+    text-align: center;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--linea);
+  }
+
+  .brecha-pie b {
+    color: var(--real);
+    font-size: 1.15rem;
+  }
+
+  /* ---------- SECCIONES ---------- */
+  section { padding: 44px 0; border-bottom: 1px solid var(--linea); }
+
+  h2 {
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+    margin-bottom: 18px;
+  }
+
+  p { margin-bottom: 14px; max-width: 68ch; }
+
+  .nota {
+    background: var(--papel-hi);
+    border-left: 3px solid var(--oficial);
+    padding: 16px 20px;
+    margin: 22px 0;
+    font-size: 0.95rem;
+  }
+
+  code {
+    font-family: "SF Mono", "Roboto Mono", ui-monospace, monospace;
+    background: var(--papel-hi);
+    border: 1px solid var(--linea);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 0.88em;
+  }
+
+  pre {
+    background: var(--tinta);
+    color: var(--papel-hi);
+    padding: 18px 20px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 18px 0;
+  }
+  pre code { background: none; border: none; color: inherit; padding: 0; }
+
+  /* ---------- LISTA DE PASOS ---------- */
+  ol.pasos { list-style: none; counter-reset: paso; }
+  ol.pasos li {
+    counter-increment: paso;
+    padding: 14px 0 14px 52px;
+    position: relative;
+    border-bottom: 1px solid var(--linea);
+    max-width: 68ch;
+  }
+  ol.pasos li:last-child { border-bottom: none; }
+  ol.pasos li::before {
+    content: counter(paso, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 14px;
+    font-family: "SF Mono", "Roboto Mono", ui-monospace, monospace;
+    font-size: 0.8rem;
+    color: var(--real);
+    font-weight: 700;
+  }
+
+  /* ---------- TABLA ---------- */
+  .tabla-wrap { overflow-x: auto; margin: 18px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--linea);
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    font-family: "SF Mono", "Roboto Mono", ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--tenue);
+  }
+  td.alza { color: var(--real); font-weight: 600; }
+
+  /* ---------- PIE ---------- */
+  footer {
+    padding: 40px 0 70px;
+    font-size: 0.85rem;
+    color: var(--tenue);
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 560px) {
+    .brecha { grid-template-columns: 1fr; gap: 24px; }
+    .vs { display: none; }
+    header { padding-top: 44px; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .lado .cifra { animation: subir 0.7s ease both; }
+    .lado.real .cifra { animation-delay: 0.12s; }
+  }
+  @keyframes subir {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Fundamentos de Ciencia de Datos · USDT / BOB</div>
+    <h1>Dos precios para<br>un mismo <span class="acc">dólar</span></h1>
+    <p class="sub">
+      En Bolivia el dólar oficial es casi fijo, pero el dólar que la gente
+      consigue de verdad — vía USDT en el mercado P2P — cuesta bastante más.
+      Esta automatización mide esa brecha, día a día.
+    </p>
+  </header>
+
+  <!-- ELEMENTO CENTRAL: la brecha -->
+  <div class="brecha">
+    <div class="lado oficial">
+      <div class="etq">Oficial · BCB</div>
+      <div class="cifra">6.91</div>
+      <div class="moneda">Bs por 1 USD</div>
+    </div>
+    <div class="vs">frente&nbsp;a</div>
+    <div class="lado real">
+      <div class="etq">Real · P2P (USDT)</div>
+      <div class="cifra">9.89</div>
+      <div class="moneda">Bs por 1 USDT</div>
+    </div>
+    <div class="brecha-pie">
+      Conseguir un dólar en la práctica cuesta cerca de
+      <b>un 40&nbsp;% más</b> que el valor oficial.
+    </div>
+  </div>
+
+  <section>
+    <h2>Qué es esto</h2>
+    <p>
+      Un programa en Python que consulta el precio del USDT (Tether) en
+      bolivianos en el mercado P2P, calcula el promedio del día con varios
+      anuncios y lo guarda en un historial. Con cada ejecución diaria, el
+      historial crece y permite ver cómo evoluciona el tipo de cambio real.
+    </p>
+    <div class="nota">
+      <strong>USDT no es el dólar.</strong> Es una <em>stablecoin</em>: un token
+      digital privado que intenta valer 1 dólar. En Bolivia se compra y vende
+      masivamente en plataformas P2P, así que su precio en bolivianos funciona
+      como termómetro del dólar paralelo real.
+    </div>
+  </section>
+
+  <section>
+    <h2>Cómo ejecutarlo</h2>
+    <ol class="pasos">
+      <li>Instalá la librería del gráfico (solo la primera vez):
+        <pre><code>pip install matplotlib</code></pre>
+      </li>
+      <li>Corré el programa para registrar el promedio de hoy:
+        <pre><code>python usdt_bob_diario.py</code></pre>
+      </li>
+      <li>Repetí el paso 2 una vez por día. El historial se construye solo
+        en <code>historial_usdt_bob.csv</code> y el gráfico en
+        <code>grafico_usdt_bob.png</code>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Ejemplo de salida</h2>
+    <p>Cada fila es el promedio de un día y su diferencia frente al oficial:</p>
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr><th>Fecha</th><th>USDT/BOB</th><th>Oficial</th><th>Sobreprecio</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>2026-06-14</td><td>9.82</td><td>6.96</td><td class="alza">+41.09 %</td></tr>
+          <tr><td>2026-06-15</td><td>9.87</td><td>6.96</td><td class="alza">+41.81 %</td></tr>
+          <tr><td>2026-06-16</td><td>9.88</td><td>6.96</td><td class="alza">+41.98 %</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:0.85rem;color:var(--tenue)">
+      Valores de ejemplo. Al ejecutar el programa se reemplazan por datos reales.
+    </p>
+  </section>
+
+  <footer>
+    Proyecto académico — Fundamentos de Ciencia de Datos.<br>
+    Fuentes de precio: Binance P2P (principal) y CriptoYa (respaldo).
+    Tipo de cambio oficial: Banco Central de Bolivia.
+  </footer>
+
+</div>
+</body>
+</html>
